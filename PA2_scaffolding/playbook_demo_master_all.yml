@@ -1,0 +1,86 @@
+---
+#
+# CS 4287/5287: Principles of Cloud Computing
+
+# Author: Spring 2023 2022 Vikash Singh
+# Based on Dr. Anirudhdha Gokhale files for same class.
+#
+# This playbook is our demo master file
+# The goal is to show how to have a single master file which then
+# includes multiple plays according to some well-designed choreography
+#
+
+#####################################################
+### Play 1: Get facts from local VMs
+#
+# Here I show thow you can include all child playbooks in this one file
+# NO include_tasks in this file. All tasks are part of this playbook.
+#####################################################
+- name: "Play 1: Perform fact gathering on local VMs"
+  hosts: MyLocalVMs          # specified in the MyInventory file
+  remote_user: vagrant       # note that the user is vagrant for 
+                             # vagrant-created VM else use the
+                             # appropriate user name
+
+  gather_facts: yes          # We ask Ansible to collect all facts
+  become: no            # No need for sudo as we are not installing anything
+
+  tasks:    # the task to be performed (here I am showing the effect of include_)
+  - name: Get facts of the VM   # This is just for printing out.
+    debug:                      # debug is used for printing information
+       var: ansible_facts       # ansible_facts is a built-in variable
+                                # that stores the collected value
+  
+#####################################################
+### Play 2: Get facts from chameleon cloud VMs
+#####################################################  
+- name: "Play 2: Perform fact gathering on Cloud VMs"
+  hosts: MyChamVMs          # specified in the MyInventory file
+  remote_user: cc       # note that the user is vagrant for 
+                             # vagrant-created VM else use the
+                             # appropriate user name
+
+  gather_facts: yes          # We ask Ansible to collect all facts
+  become: no            # NO need to include this as well. 
+
+  tasks:    # the task to be performed (here I am showing the effect of include_)
+  - name: Get facts of the VM   # This is just for printing out.
+    debug:                      # debug is used for printing information
+       var: ansible_facts       # ansible_facts is a built-in variable
+    
+
+#####################################################
+### Play 3: Execute a command on cloud vm
+#####################################################  
+- name: "Play 3: Execute a command on cloud vm"
+  hosts: MyChamVMs
+  remote_user:  cc   # change the user to whatever is the user on the cloud VM
+  collections:   # this is new starting with Ansible 2.9 (akin to importing package)
+    - openstack.cloud
+
+  # here we use the command module. There is also the shell module to do similar
+  # outcome especially when you want to run a shell script, and there are more
+  # complex arguments including executing in specific directories.
+  tasks:
+  - name: Execute a command on remote cloud VM
+    command: top -n 1 -b  # say we execute our famous command from assignment #1
+    register: output
+
+  - name: Print the output
+    debug:
+      msg: "{{ output }}" 
+
+#####################################################
+### Play 4: install a package via the aptitude module
+#####################################################  
+- name: "Play 4: Install SVN on local VM"
+  hosts: MyLocalVMs          # specified in the MyInventory file   
+  remote_user: vagrant
+  become: true     # run with "sudo" privileges  
+
+  tasks:                     # the task to be performed
+  - name: Install subversion module using apt-get
+    ansible.builtin.apt:
+      name: subversion
+      state: latest                          
+...
